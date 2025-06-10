@@ -6,7 +6,9 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from pdf_scraper import scrape_alloschool_links
 from pdf_downloader import download_alloschool_pdfs
+
 from pdf_text_extractor import create_dataset_from_pdfs, PDF_ROOT_DIR as EXTRACTOR_PDF_ROOT_DIR, FULL_OUTPUT_FILE as EXTRACTOR_OUTPUT_FILE
+#from pdf_text_extractor_AI import create_dataset_from_pdfs, PDF_ROOT_DIR as EXTRACTOR_PDF_ROOT_DIR, FULL_OUTPUT_FILE as EXTRACTOR_OUTPUT_FILE
 
 # Define the grade levels and their corresponding Alloschool URLs
 GRADE_LEVELS = {
@@ -26,7 +28,7 @@ def scrap_download():
         
         # Download PDFs
         print("Downloading PDFs...")
-        download_alloschool_pdfs(grade_folder_name)
+        #download_alloschool_pdfs(grade_folder_name)
         
         
 def main():
@@ -41,8 +43,9 @@ def main():
     
     # Step 3: Create dataset
     print("\n--- Creating unified dataset ---")
+    #create_dataset_from_pdfs(EXTRACTOR_PDF_ROOT_DIR, EXTRACTOR_OUTPUT_FILE)
     create_dataset_from_pdfs(EXTRACTOR_PDF_ROOT_DIR, EXTRACTOR_OUTPUT_FILE)
-    
+
     print("\n--- Pipeline completed successfully ---")
 
 if __name__ == "__main__":
