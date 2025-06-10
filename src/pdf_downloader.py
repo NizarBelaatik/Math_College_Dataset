@@ -5,8 +5,7 @@ import os
 import re
 from urllib.parse import urlparse, urljoin
 
-from config import BASE_DATA_DIR , BASE_PDF_DOWNLOAD_DIR
-
+from config import BASE_DATA_DIR, BASE_PDF_DOWNLOAD_DIR
 
 def get_filename_from_url(url: str) -> str:
     """
@@ -24,10 +23,11 @@ def get_filename_from_url(url: str) -> str:
 
     return filename.split("?")[0]  # Remove query parameters
 
-
-# In pdf_downloader.py, modify the download_pdf function:
 def download_pdf(url: str, filepath: str, original_name: str = None) -> bool:
-
+    """
+    Downloads a PDF from the given URL to the specified filepath.
+    Uses original_name if provided, otherwise derives a clean filename from the URL.
+    """
     if not url:
         print(f"Skipping download: URL is empty.")
         return False
@@ -77,26 +77,27 @@ def download_pdf(url: str, filepath: str, original_name: str = None) -> bool:
         print(f"[-] An unexpected error occurred downloading {url}: {e}")
         return False
 
-
 def download_alloschool_pdfs(grade_level_folder_name: str):
+    """
+    Downloads question and answer PDFs for a given grade level from a JSON file.
+    Saves PDFs to grade-specific subdirectories under BASE_PDF_DOWNLOAD_DIR.
 
-    input_file = os.path.join(BASE_DATA_DIR, f'{grade_level_folder_name}_lessons_exercises.json')
+    Args:
+        grade_level_folder_name (str): Folder name (e.g., '1AC', '2AC') for the input JSON and output PDFs.
+    """
+    input_file = os.path.join(BASE_DATA_DIR, f'{grade_level_folder_name}_questions_answers.json')
 
     # Define grade-specific download directories
     grade_pdf_dir = os.path.join(BASE_PDF_DOWNLOAD_DIR, grade_level_folder_name)
-    cours_dir = os.path.join(grade_pdf_dir, "cours")
     exercice_dir = os.path.join(grade_pdf_dir, "exercice")
     correction_dir = os.path.join(grade_pdf_dir, "correction")
 
-    os.makedirs(cours_dir, exist_ok=True)
     os.makedirs(exercice_dir, exist_ok=True)
     os.makedirs(correction_dir, exist_ok=True)
 
-
-
     print(f"\n--- Downloading PDFs for {grade_level_folder_name} ---")
     try:
-        # Load the lessons data
+        # Load the questions and answers data
         if not os.path.exists(input_file):
             print(f"Error: Input file not found at {input_file}. Please run the scraper first.")
             return
@@ -105,38 +106,51 @@ def download_alloschool_pdfs(grade_level_folder_name: str):
             lessons_data = json.load(f)
 
         if not lessons_data:
-            print(f"No lesson data found in {input_file} to download.")
+            print(f"No data found in {input_file} to download.")
             return
 
-        print(f"[*] Starting PDF download for {len(lessons_data)} lessons for {grade_level_folder_name}...")
+        print(f"[*] Starting PDF download for {len(lessons_data)} question-answer pairs for {grade_level_folder_name}...")
 
         for i, lesson in enumerate(lessons_data):
             lesson_name = lesson.get('lesson_name', f"Lesson {i+1}")
-            print(f"\n--- Processing Lesson: {lesson_name} ({grade_level_folder_name}) ---")
+            exercice_id = lesson.get('exercice', f"exercice {i+1}")
+            print(f"\n--- Processing Lesson: {lesson_name} - {exercice_id} ({grade_level_folder_name}) ---")
 
-            files_to_download = {
-                'cours': {'url': lesson.get('cours'), 'dir': cours_dir,'name':lesson.get('lesson_name').replace(" ","_")},
-                'exercice': {'url': lesson.get('exercice'), 'dir': exercice_dir,'name':lesson.get('lesson_name').replace(" ","_")},
-                'correction': {'url': lesson.get('correction'), 'dir': correction_dir,'name':lesson.get('lesson_name').replace(" ","_")},
-            }
+            # Clean lesson_name for filename (replace spaces and special characters)
+            clean_lesson_name = re.sub(r'[^\w\s-]', '', lesson_name).replace(' ', '_')
+            clean_exercice_id = re.sub(r'[^\w\s-]', '', exercice_id).replace(' ', '_')
 
-            for file_type, info in files_to_download.items():
-                target_url = info['url']
-                target_dir = info['dir']
-                target_name = str(info['name']+".pdf")
+            files_to_download = [
+                {
+                    'type': 'question',
+                    'url': lesson.get('question'),
+                    'dir': exercice_dir,
+                    'name': f"{clean_lesson_name}_{clean_exercice_id}.pdf"
+                },
+                {
+                    'type': 'answer',
+                    'url': lesson.get('answer'),
+                    'dir': correction_dir,
+                    'name': f"{clean_lesson_name}_{clean_exercice_id}_correction.pdf"
+                }
+            ]
+
+            for file_info in files_to_download:
+                file_type = file_info['type']
+                target_url = file_info['url']
+                target_dir = file_info['dir']
+                target_name = file_info['name']
 
                 if not target_url:
-                    print(f"    [ ] No {file_type} URL found for {lesson_name}, skipping.")
+                    print(f"    [ ] No {file_type} URL found for {lesson_name} - {exercice_id}, skipping.")
                     continue
 
-                print(f"    [*] Visiting {file_type} page: {target_url}")
+                print(f"    [*] Processing {file_type} URL: {target_url}")
                 try:
-                        filepath = os.path.join(target_dir, target_name)
-                        print(f"        [*] Found actual download link: {target_url}")
-                        download_pdf(target_url, filepath,target_name)
+                    filepath = os.path.join(target_dir, target_name)
+                    download_pdf(target_url, filepath, target_name)
                 except Exception as e:
-                    print(f"    [-] Error processing {file_type} for {lesson_name} ({target_url}): {e}")
-                
+                    print(f"    [-] Error processing {file_type} for {lesson_name} - {exercice_id} ({target_url}): {e}")
 
     except Exception as e:
         print(f"An error occurred during the PDF download process for {grade_level_folder_name}: {e}")

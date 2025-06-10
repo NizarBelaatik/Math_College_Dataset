@@ -26,7 +26,7 @@ def scrap_download():
         
         # Download PDFs
         print("Downloading PDFs...")
-        #download_alloschool_pdfs(grade_folder_name)
+        download_alloschool_pdfs(grade_folder_name)
         
         
 def main():
@@ -37,7 +37,7 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Step 1 & 2: Process each grade level
-    #scrap_download()
+    scrap_download()
     
     # Step 3: Create dataset
     print("\n--- Creating unified dataset ---")

@@ -3,7 +3,7 @@ import re
 import json
 import pdfplumber
 from typing import Dict, List, Tuple, Optional
-from config import OUTPUT_DIR, PDF_ROOT_DIR, BASE_DATA_DIR
+from config import OUTPUT_DIR, PDF_ROOT_DIR
 
 EXTRACTED_TEXTS_DIR = os.path.join(OUTPUT_DIR, "extracted_texts")
 FULL_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "math_dataset.jsonl")
@@ -22,11 +22,9 @@ def extract_text_from_pdf(pdf_path: str) -> str:
             for page in pdf.pages:
                 page_text = page.extract_text()
                 if page_text:
-                    # Clean up the text
                     page_text = re.sub(r'\s+', ' ', page_text.strip())
-                    # Replace special characters
                     replacements = {
-                        '−': '-', '×': '*', '÷': '/', 
+                        '−': '-', '×': '*', '÷': '/',
                         '²': '^2', '³': '^3', '√': 'sqrt',
                         '≈': '≈', '≤': '<=', '≥': '>='
                     }
@@ -56,16 +54,11 @@ def detect_niveau(folder_path: str) -> str:
 def extract_exercises(text: str) -> Dict[int, str]:
     """Extract exercises from text with multiple patterns."""
     exercises = {}
-    
     patterns = [
-        # Pattern 1: "Exercice N" followed by content
         r'(?:Exercice|EXERCICE)\s*(\d+)[\.\s]*(.*?)(?=(?:Exercice|EXERCICE)\s*\d+|$)',
-        # Pattern 2: "N°N" format
         r'(?:N°|Numéro)\s*(\d+)[\.\s]*(.*?)(?=(?:N°|Numéro)\s*\d+|$)',
-        # Pattern 3: Numbered items with parentheses
         r'(\d+)\)\s*(.*?)(?=\d+\)|$)'
     ]
-    
     for pattern in patterns:
         for match in re.finditer(pattern, text, re.DOTALL | re.IGNORECASE):
             try:
@@ -75,24 +68,17 @@ def extract_exercises(text: str) -> Dict[int, str]:
                     exercises[ex_num] = ex_content
             except (ValueError, IndexError):
                 continue
-                
     return exercises
 
 def extract_corrections(text: str) -> Dict[int, str]:
     """Extract corrections with multiple patterns."""
     corrections = {}
-    
     patterns = [
-        # Explicit correction markers
-        r"(?:Corrigé|CORRIGE|Solution|SOLUTION)\s*(?:de l[''']|d[ue]\s*)?(?:exercice|exo|EXERCICE)\s*(\d+)[\.\s]*(.*?)(?=(?:Corrigé|CORRIGE|Solution|SOLUTION)\s*(?:de l[''']|d[ue]\s*)?(?:exercice|exo|EXERCICE)\s*\d+|$)",
-        # Exercise followed by correction
+        r"(?:Corrigé|CORRIGE|Solution|SOLUTION)\s*(?:de l['']|d[ue]\s*)?(?:exercice|exo|EXERCICE)\s*(\d+)[\.\s]*(.*?)(?=(?:Corrigé|CORRIGE|Solution|SOLUTION)\s*(?:de l['']|d[ue]\s*)?(?:exercice|exo|EXERCICE)\s*\d+|$)",
         r"(?:Exercice|EXERCICE)\s*(\d+)[\.\s]*(?:Corrigé|CORRIGE|Solution|SOLUTION)[\.\s]*(.*?)(?=(?:Exercice|EXERCICE)\s*\d+|$)",
-        # Numbered corrections
         r"(\d+)[\)\.]\s*(?:Corrigé|CORRIGE|Solution|SOLUTION)[\.\s]*(.*?)(?=\d+[\)\.]|$)",
-        # Simple numbered items (fallback)
         r"(\d+)\)\s*(.*?)(?=\d+\)|$)"
     ]
-    
     for pattern in patterns:
         for match in re.finditer(pattern, text, re.DOTALL | re.IGNORECASE):
             try:
@@ -102,7 +88,6 @@ def extract_corrections(text: str) -> Dict[int, str]:
                     corrections[ex_num] = correction
             except (ValueError, IndexError):
                 continue
-                
     return corrections
 
 # ---------- Metadata Extraction ----------
@@ -114,8 +99,6 @@ def infer_metadata(pdf_name: str, text: str) -> Tuple[str, str, str]:
     """
     pdf_name_lower = pdf_name.lower()
     text_lower = text.lower()
-    
-    # Subject and chapter mapping
     subject_chapter_map = {
         "thales": ("Géométrie", "Théorème de Thalès"),
         "pythagore": ("Géométrie", "Théorème de Pythagore"),
@@ -133,148 +116,130 @@ def infer_metadata(pdf_name: str, text: str) -> Tuple[str, str, str]:
         "puissance": ("Arithmétique", "Puissances"),
         "arithmetique": ("Arithmétique", "Arithmétique"),
         "statistique": ("Statistiques", "Statistiques"),
-        "probabilite": ("Probabilités", "Probabilités")
+        "probabilite": ("Probabilités", "Probabilités"),
+        "symetrie": ("Géométrie", "Symétrie axiale")
     }
-    
-    # Difficulty indicators
     difficulty_map = {
         "facile": ["facile", "simple", "basique"],
         "difficile": ["difficile", "complexe", "avancé", "brevet"],
         "moyen": ["moyen", "intermédiaire", "standard"]
     }
-    
-    # Default values
     matiere = "Mathématiques"
     chapitre = "Non spécifié"
     difficulte = "Moyen"
-    
-    # Detect subject and chapter
     for keyword, (subj, chap) in subject_chapter_map.items():
         if keyword in pdf_name_lower or keyword in text_lower:
             matiere = subj
             chapitre = chap
             break
-    
-    # Detect difficulty
     for level, keywords in difficulty_map.items():
         if any(kw in pdf_name_lower or kw in text_lower for kw in keywords):
             difficulte = level
             break
-    
     return matiere, chapitre, difficulte
 
 # ---------- File Matching ----------
-def find_matching_files(root_dir: str) -> List[Tuple[str, str, Optional[str]]]:
+
+def get_base_lesson_name(filename: str) -> str:
+    """Extract base lesson name from filename, removing indices and correction markers."""
+    filename = filename.lower()
+    # Remove correction markers
+    filename = re.sub(r'(corrige|correction|solutions?)(?:\s*d[ue]\s*exercices?)?', '', filename, flags=re.IGNORECASE)
+    # Remove exercise markers and indices
+    filename = re.sub(r'(exercices?|serie\s*d[\'e]exercices?)\s*(non\s*corrig[eé]s)?\s*(\d+)?\s*(\(ma\))?', '', filename, flags=re.IGNORECASE)
+    # Clean up extra spaces and special characters
+    filename = re.sub(r'\s+', ' ', filename).strip()
+    return filename
+
+def find_matching_files(root_dir: str) -> List[Tuple[str, str, Optional[str], str, int]]:
     """
-    Find matching exercise and correction files based on JSON data.
-    Returns list of tuples: (exercise_path, correction_path, niveau)
+    Find matching exercise and correction files, grouping by lesson and indexing multiples.
+    Returns list of tuples: (exercise_path, correction_path, niveau, lesson_name, index)
     """
     file_pairs = []
-    
+    lesson_groups = {}
+
     for niveau_dir in ["1AC", "2AC", "3AC"]:
         niveau_path = os.path.join(root_dir, niveau_dir)
-        json_path = os.path.join(BASE_DATA_DIR, f"{niveau_dir}_questions_answers.json")
-        
         if not os.path.exists(niveau_path):
-            print(f"Skipping {niveau_dir}: Directory not found at {niveau_path}")
             continue
-        if not os.path.exists(json_path):
-            print(f"Skipping {niveau_dir}: JSON file not found at {json_path}")
-            continue
-            
+
         niveau = detect_niveau(niveau_dir)
-        
-        # Load JSON data
-        try:
-            with open(json_path, 'r', encoding='utf-8') as f:
-                lessons_data = json.load(f)
-        except Exception as e:
-            print(f"Error reading JSON for {niveau_dir}: {e}")
-            continue
-        
         ex_dir = os.path.join(niveau_path, "exercice")
         corr_dir = os.path.join(niveau_path, "correction")
-        
+
         if not os.path.exists(ex_dir):
-            print(f"Exercise directory not found for {niveau_dir} at {ex_dir}")
             continue
-        
-        # Process each JSON entry
-        for entry in lessons_data:
-            lesson_name = entry.get('lesson_name', '')
-            exercice = entry.get('exercice', '')
-            question_url = entry.get('question', '')
-            answer_url = entry.get('answer', '')
-            
-            if not lesson_name or not exercice:
-                print(f"Skipping entry with missing lesson_name or exercice: {entry}")
+
+        # Group exercise files by base lesson name
+        for ex_file in os.listdir(ex_dir):
+            if not ex_file.lower().endswith('.pdf'):
                 continue
-            
-            # Construct expected filename
-            base_name = lesson_name.replace(' ', '_') + '_' + exercice.replace(' ', '_')
-            ex_filename = f"{base_name}.pdf"
-            corr_filename = f"{base_name}.pdf"
-            
-            ex_path = os.path.join(ex_dir, ex_filename)
-            corr_path = os.path.join(corr_dir, corr_filename)
-            
-            # Check if exercise file exists
-            if not os.path.exists(ex_path):
-                print(f"Exercise file not found: {ex_filename} at {ex_path}")
-                continue
-            
-            # Check if correction is expected
-            if not answer_url:
-                print(f"No correction URL in JSON for {ex_filename} (answer: {answer_url})")
-                corr_path = None
-            elif not os.path.exists(corr_path):
-                print(f"Correction file not found: {corr_filename} at {corr_path}")
-                # Fallback: Try partial matching in correction directory
-                if os.path.exists(corr_dir):
-                    base_name_lower = base_name.lower()
-                    corr_candidates = [
-                        f for f in os.listdir(corr_dir)
-                        if f.lower().endswith('.pdf') and base_name_lower in f.lower()
-                    ]
-                    if corr_candidates:
-                        corr_path = os.path.join(corr_dir, corr_candidates[0])
-                        print(f"Fallback: Found correction {corr_candidates[0]} for {ex_filename}")
-                    else:
-                        print(f"No matching correction found in {corr_dir} for {ex_filename}")
-                        corr_path = None
-                else:
-                    print(f"Correction directory not found: {corr_dir}")
-                    corr_path = None
-            
-            file_pairs.append((ex_path, corr_path, niveau))
-    
+            lesson_name = get_base_lesson_name(ex_file)
+            if lesson_name not in lesson_groups:
+                lesson_groups[lesson_name] = {'exercises': [], 'corrections': []}
+            lesson_groups[lesson_name]['exercises'].append(os.path.join(ex_dir, ex_file))
+
+        # Group correction files by base lesson name
+        if os.path.exists(corr_dir):
+            for corr_file in os.listdir(corr_dir):
+                if not corr_file.lower().endswith('.pdf'):
+                    continue
+                lesson_name = get_base_lesson_name(corr_file)
+                if lesson_name in lesson_groups:
+                    lesson_groups[lesson_name]['corrections'].append(os.path.join(corr_dir, corr_file))
+
+    # Process each lesson group
+    for lesson_name, group in lesson_groups.items():
+        exercises = sorted(group['exercises'])  # Sort for consistent indexing
+        corrections = sorted(group['corrections'])
+        num_exercises = len(exercises)
+
+        for idx, ex_path in enumerate(exercises, 1):
+            # Find matching correction by comparing base names and indices
+            corr_path = None
+            ex_filename = os.path.basename(ex_path).lower()
+            ex_index_match = re.search(r'(\d+)', ex_filename)
+            ex_index = int(ex_index_match.group(1)) if ex_index_match else idx
+
+            for corr_file in corrections:
+                corr_filename = os.path.basename(corr_file).lower()
+                corr_index_match = re.search(r'(\d+)', corr_filename)
+                corr_index = int(corr_index_match.group(1)) if corr_index_match else None
+                if corr_index == ex_index or lesson_name in corr_filename:
+                    corr_path = corr_file
+                    break
+
+            file_pairs.append((ex_path, corr_path, niveau, lesson_name, idx))
+
     return file_pairs
+
 # ---------- Main Processing ----------
 
 def create_dataset_from_pdfs(pdf_root_dir: str, output_file: str):
     """Main function to process PDFs and create dataset."""
     dataset = []
-    
+
     # Find all matching exercise-correction pairs
     file_pairs = find_matching_files(pdf_root_dir)
     print(f"Found {len(file_pairs)} exercise files with potential corrections")
-    
-    for ex_path, corr_path, niveau in file_pairs:
+
+    for ex_path, corr_path, niveau, lesson_name, index in file_pairs:
         ex_name = os.path.basename(ex_path)
-        print(f"\nProcessing: {ex_name}")
-        
+        print(f"\nProcessing: {ex_name} (Lesson: {lesson_name}, Index: {index})")
+
         # Extract exercise text
         ex_text = extract_text_from_pdf(ex_path)
         if not ex_text:
             print(f"  [!] Could not extract text from {ex_name}")
             continue
-            
+
         # Extract exercises
         exercises = extract_exercises(ex_text)
         if not exercises:
             print(f"  [!] No exercises found in {ex_name}")
             continue
-            
+
         # Extract corrections if available
         corrections = {}
         if corr_path and os.path.exists(corr_path):
@@ -286,31 +251,35 @@ def create_dataset_from_pdfs(pdf_root_dir: str, output_file: str):
                 print(f"  [!] Could not extract text from correction {os.path.basename(corr_path)}")
         else:
             print("  [!] No matching correction found")
-            
+
         # Infer metadata
         matiere, chapitre, difficulte = infer_metadata(ex_name, ex_text)
-        
+        # Append index to chapitre if multiple exercises
+        chapitre_indexed = f"{chapitre}_{index}" if index > 1 else chapitre
+
         # Create dataset entries
         for ex_num, question in exercises.items():
             correction = corrections.get(ex_num, "")
-            
+
             # Create unique ID
             chap_id = re.sub(r'[^a-zA-Z0-9]+', '', chapitre)[:5].upper()
-            unique_id = f"{niveau[:1]}AC_{chap_id}_{ex_num:03d}_{os.path.splitext(ex_name)[0]}"
-            
+            unique_id = f"{niveau[:1]}AC_{chap_id}_{index:03d}_{ex_num:03d}_{os.path.splitext(ex_name)[0]}"
+
             dataset.append({
                 "id": unique_id,
                 "niveau": niveau,
-                "chapitre": chapitre,
+                "chapitre": chapitre_indexed,
                 "matiere": matiere,
                 "question": question,
-                "reponse_attendue": "",  # Can be filled manually later
+                "reponse_attendue": "",
                 "correction": correction,
                 "type_exercice": "Résolution",
                 "difficulte": difficulte,
-                "source": ex_name
+                "source": ex_name,
+                "lesson_name": lesson_name,
+                "exercise_index": index
             })
-    
+
     # Save the dataset
     if dataset:
         with open(output_file, 'w', encoding='utf-8') as f:
