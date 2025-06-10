@@ -1,7 +1,4 @@
 import json
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
 import time
 import requests
 import os
@@ -30,9 +27,7 @@ def get_filename_from_url(url: str) -> str:
 
 # In pdf_downloader.py, modify the download_pdf function:
 def download_pdf(url: str, filepath: str, original_name: str = None) -> bool:
-    """Downloads a PDF from a URL and saves it to a specified filepath,
-    attempting to create a cleaner filename.
-    """
+
     if not url:
         print(f"Skipping download: URL is empty.")
         return False
@@ -97,12 +92,7 @@ def download_alloschool_pdfs(grade_level_folder_name: str):
     os.makedirs(exercice_dir, exist_ok=True)
     os.makedirs(correction_dir, exist_ok=True)
 
-    # Setup Chrome in headless mode for initial page parsing
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(options=options)
+
 
     print(f"\n--- Downloading PDFs for {grade_level_folder_name} ---")
     try:
@@ -125,14 +115,15 @@ def download_alloschool_pdfs(grade_level_folder_name: str):
             print(f"\n--- Processing Lesson: {lesson_name} ({grade_level_folder_name}) ---")
 
             files_to_download = {
-                'cours': {'url': lesson.get('cours'), 'dir': cours_dir},
-                'exercice': {'url': lesson.get('exercice'), 'dir': exercice_dir},
-                'correction': {'url': lesson.get('correction'), 'dir': correction_dir},
+                'cours': {'url': lesson.get('cours'), 'dir': cours_dir,'name':lesson.get('lesson_name').replace(" ","_")},
+                'exercice': {'url': lesson.get('exercice'), 'dir': exercice_dir,'name':lesson.get('lesson_name').replace(" ","_")},
+                'correction': {'url': lesson.get('correction'), 'dir': correction_dir,'name':lesson.get('lesson_name').replace(" ","_")},
             }
 
             for file_type, info in files_to_download.items():
                 target_url = info['url']
                 target_dir = info['dir']
+                target_name = str(info['name']+".pdf")
 
                 if not target_url:
                     print(f"    [ ] No {file_type} URL found for {lesson_name}, skipping.")
@@ -140,34 +131,16 @@ def download_alloschool_pdfs(grade_level_folder_name: str):
 
                 print(f"    [*] Visiting {file_type} page: {target_url}")
                 try:
-                    driver.get(target_url)
-                    time.sleep(3)  # Give time for page to load
-
-                    soup = BeautifulSoup(driver.page_source, 'html.parser')
-                    download_button = soup.select_one('a.btn.btn-lg.btn-primary')
-
-                    actual_download_url = None
-                    if download_button:
-                        actual_download_url = download_button.get('href')
-
-                    if actual_download_url:
-                        if not actual_download_url.startswith('http'):
-                            actual_download_url = urljoin(driver.current_url, actual_download_url)
-
-                        filename = get_filename_from_url(actual_download_url)
-                        filepath = os.path.join(target_dir, filename)
-                        print(f"        [*] Found actual download link: {actual_download_url}")
-                        download_pdf(actual_download_url, filepath)
-                    else:
-                        print(f"        [-] No download button found for {file_type} at {target_url}")
-
+                        filepath = os.path.join(target_dir, target_name)
+                        print(f"        [*] Found actual download link: {target_url}")
+                        download_pdf(target_url, filepath,target_name)
                 except Exception as e:
                     print(f"    [-] Error processing {file_type} for {lesson_name} ({target_url}): {e}")
+                
 
     except Exception as e:
         print(f"An error occurred during the PDF download process for {grade_level_folder_name}: {e}")
     finally:
-        driver.quit()
         print(f"\n[*] PDF download process finished for {grade_level_folder_name}.")
 
 if __name__ == "__main__":
