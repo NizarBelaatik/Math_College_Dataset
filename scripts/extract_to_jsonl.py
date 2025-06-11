@@ -4,10 +4,12 @@ import json
 import pdfplumber
 
 # ---------- Configuration ----------
-PDF_ROOT_DIR = "../dataset"  # Your dataset folder
+PDF_ROOT_DIR = "../pdfs" # This will now contain 1AC, 2AC, 3AC subfolders
 OUTPUT_DIR = "../output"
 EXTRACTED_TEXTS_DIR = os.path.join(OUTPUT_DIR, "extracted_texts")
 FULL_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "math_dataset.jsonl")
+
+# Grade levels to categorize PDFs (can be expanded)
 NIVEAUX = ["1ère année collège", "2ème année collège", "3ème année collège"]
 
 os.makedirs(EXTRACTED_TEXTS_DIR, exist_ok=True)
