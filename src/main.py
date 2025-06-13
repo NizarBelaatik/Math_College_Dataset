@@ -8,7 +8,7 @@ from pdf_scraper import scrape_alloschool_links
 from pdf_downloader import download_alloschool_pdfs
 
 from pdf_text_extractor import create_dataset_from_pdfs, PDF_ROOT_DIR as EXTRACTOR_PDF_ROOT_DIR, FULL_OUTPUT_FILE as EXTRACTOR_OUTPUT_FILE
-#from pdf_text_extractor_AI import create_dataset_from_pdfs, PDF_ROOT_DIR as EXTRACTOR_PDF_ROOT_DIR, FULL_OUTPUT_FILE as EXTRACTOR_OUTPUT_FILE
+from get_correction_using_ai import generate_dataset
 
 # Define the grade levels and their corresponding Alloschool URLs
 GRADE_LEVELS = {
@@ -39,13 +39,16 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Step 1 & 2: Process each grade level
-    scrap_download()
-    
-    # Step 3: Create dataset
+    #scrap_download()
+    print
+    # Step 3: Create dataset 
     print("\n--- Creating unified dataset ---")
     #create_dataset_from_pdfs(EXTRACTOR_PDF_ROOT_DIR, EXTRACTOR_OUTPUT_FILE)
-    create_dataset_from_pdfs(EXTRACTOR_PDF_ROOT_DIR, EXTRACTOR_OUTPUT_FILE)
 
+    # Step 4: Recreate dataset using AI 
+    print("\n--- Creating dataset using AI ---")
+    generate_dataset(max_lines_per_run=10,wait_time_between_calls=2)
+    
     print("\n--- Pipeline completed successfully ---")
 
 if __name__ == "__main__":

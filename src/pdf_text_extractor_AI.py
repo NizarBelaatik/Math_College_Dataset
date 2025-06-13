@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple, Optional
 from config import OUTPUT_DIR, PDF_ROOT_DIR, BASE_DATA_DIR
 #import openai  # For AI explanations (you'll need to install and configure this)
 
-#openai.api_key = "sk-1234567890abcdef1234567890abcdef12345678"
+
 from openai import OpenAI
 client = OpenAI(api_key="")
 
