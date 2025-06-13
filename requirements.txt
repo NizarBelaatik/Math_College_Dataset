@@ -2,4 +2,5 @@ requests==2.32.4
 selenium==4.33.0
 beautifulsoup4==4.13.4
 pdfplumber==0.11.6
-openai==1.86.0 # 0.28  
+#openai==1.86.0 # 0.28  
+dotenv
