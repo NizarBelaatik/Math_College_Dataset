@@ -47,8 +47,22 @@ def main():
 
     # Step 4: Recreate dataset using AI 
     print("\n--- Creating dataset using AI ---")
-    generate_dataset(max_lines_per_run=10,wait_time_between_calls=2)
+    #generate_dataset(max_lines_per_run=50,wait_time_between_calls=2)
     
+    from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+    token="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"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    #token = "hf_your_token_here"  # Replace with your actual token
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=token)
+    model = AutoModelForCausalLM.from_pretrained(model_id, use_auth_token=token)
+
+    pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, max_new_tokens=200)
+
+    prompt = f"""Context:\n{context}\n\nQuestion:\n{question}\n\nAnswer:"""
+    response = pipe(prompt)[0]["generated_text"]
+
+    print("Answer:", response)
+
     print("\n--- Pipeline completed successfully ---")
 
 if __name__ == "__main__":
