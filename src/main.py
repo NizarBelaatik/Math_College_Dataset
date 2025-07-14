@@ -1,6 +1,6 @@
 import os
 import sys
-from config import BASE_DATA_DIR , BASE_PDF_DOWNLOAD_DIR , OUTPUT_DIR 
+from config import BASE_SCRAPED_LINKS_DIR , BASE_PDF_DOWNLOAD_DIR , OUTPUT_DIR 
 # Add the 'src' directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
@@ -34,7 +34,7 @@ def scrap_download():
 def main():
     print("--- Starting the Multi-Grade Math PDF Data Pipeline ---")
     # Ensure output directories exist
-    os.makedirs(BASE_DATA_DIR, exist_ok=True)
+    os.makedirs(BASE_SCRAPED_LINKS_DIR, exist_ok=True)
     os.makedirs(BASE_PDF_DOWNLOAD_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 

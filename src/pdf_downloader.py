@@ -5,7 +5,7 @@ import os
 import re
 from urllib.parse import urlparse, urljoin
 
-from config import BASE_DATA_DIR, BASE_PDF_DOWNLOAD_DIR
+from config import BASE_SCRAPED_LINKS_DIR, BASE_PDF_DOWNLOAD_DIR
 
 def get_filename_from_url(url: str) -> str:
     """
@@ -85,7 +85,7 @@ def download_alloschool_pdfs(grade_level_folder_name: str):
     Args:
         grade_level_folder_name (str): Folder name (e.g., '1AC', '2AC') for the input JSON and output PDFs.
     """
-    input_file = os.path.join(BASE_DATA_DIR, f'{grade_level_folder_name}_questions_answers.json')
+    input_file = os.path.join(BASE_SCRAPED_LINKS_DIR, f'{grade_level_folder_name}_questions_answers.json')
 
     # Define grade-specific download directories
     grade_pdf_dir = os.path.join(BASE_PDF_DOWNLOAD_DIR, grade_level_folder_name)

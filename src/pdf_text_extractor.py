@@ -3,7 +3,7 @@ import re
 import json
 import pdfplumber
 from typing import Dict, List, Tuple, Optional
-from config import OUTPUT_DIR, PDF_ROOT_DIR, BASE_DATA_DIR
+from config import OUTPUT_DIR, PDF_ROOT_DIR, BASE_SCRAPED_LINKS_DIR
 
 EXTRACTED_TEXTS_DIR = os.path.join(OUTPUT_DIR, "extracted_texts")
 FULL_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "math_dataset.jsonl")
@@ -173,7 +173,7 @@ def find_matching_files(root_dir: str) -> List[Tuple[str, str, Optional[str]]]:
     
     for niveau_dir in ["1AC", "2AC", "3AC"]:
         niveau_path = os.path.join(root_dir, niveau_dir)
-        json_path = os.path.join(BASE_DATA_DIR, f"{niveau_dir}_questions_answers.json")
+        json_path = os.path.join(BASE_SCRAPED_LINKS_DIR, f"{niveau_dir}_questions_answers.json")
         
         if not os.path.exists(niveau_path):
             print(f"Skipping {niveau_dir}: Directory not found at {niveau_path}")

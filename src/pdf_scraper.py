@@ -7,7 +7,7 @@ import os
 from urllib.parse import urlparse, urljoin
 import re
 
-from config import BASE_DATA_DIR
+from config import BASE_SCRAPED_LINKS_DIR
 
 def get_file_url(target_url, driver):
     try:
@@ -29,14 +29,14 @@ def get_file_url(target_url, driver):
 def scrape_alloschool_links(url: str, output_folder_name: str):
     """
     Scrapes exercise and correction PDF links from Alloschool URL, handling multiple pairs.
-    Saves links to a grade-specific JSON file within BASE_DATA_DIR as a question-answer dataset.
+    Saves links to a grade-specific JSON file within BASE_SCRAPED_LINKS_DIR as a question-answer dataset.
 
     Args:
         url (str): The URL of the Alloschool page to scrape.
         output_folder_name (str): Folder name (e.g., '1AC', '2AC') for the output JSON file.
     """
-    output_file = os.path.join(BASE_DATA_DIR, f'{output_folder_name}_questions_answers.json')
-    os.makedirs(BASE_DATA_DIR, exist_ok=True)
+    output_file = os.path.join(BASE_SCRAPED_LINKS_DIR, f'{output_folder_name}_questions_answers.json')
+    os.makedirs(BASE_SCRAPED_LINKS_DIR, exist_ok=True)
 
     # Setup Chrome in headless mode
     options = Options()

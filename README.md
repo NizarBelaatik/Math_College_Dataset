@@ -6,40 +6,57 @@ The **Dataset Math College** project automates the creation of a structured data
 
 ## Project Workflow
 
-The pipeline consists of four main steps, each handled by a dedicated script:
+The pipeline consists of four main steps, each handled by a dedicated script in the `src/` directory:
 
-1. **Scraping PDF Links** (`pdf_scraper.py`):
-   
+1. **Scraping PDF Links** (`src/pdf_scraper.py`):
+
    - Scrapes exercise and correction PDF links from Alloschool pages for grade levels 1AC, 2AC, and 3AC.
    - Uses Selenium and BeautifulSoup to navigate dynamic web pages and extract links.
-   - Saves the scraped links in JSON files (`<grade>_questions_answers.json`) in the `BASE_DATA_DIR`.
+   - Saves the scraped links in JSON files (e.g., `1AC_questions_answers.json`) in the `BASE_SCRAPED_LINKS_DIR` (`scraped_links/`).
 
-2. **Downloading PDFs** (`pdf_downloader.py`):
-   
-   - Downloads exercise and correction PDFs using the scraped links.
-   - Organizes PDFs into grade-specific directories (`exercice` and `correction`) under `BASE_PDF_DOWNLOAD_DIR`.
+2. **Downloading PDFs** (`src/pdf_downloader.py`):
+
+   - Downloads exercise and correction PDFs using the scraped links from `scraped_links/`.
+   - Organizes PDFs into grade-specific directories (`exercice` and `correction`) under `BASE_PDF_DOWNLOAD_DIR` (`pdfs/<grade>/`).
    - Cleans filenames to remove unnecessary suffixes (e.g., language codes, "non-corriges") for consistency.
 
-3. **Extracting Data from PDFs** (`pdf_text_extractor.py`):
-   
+3. **Extracting Data from PDFs** (`src/pdf_text_extractor.py`):
+
    - Extracts text from PDFs using `pdfplumber`.
    - Identifies exercises and corrections using regex patterns.
    - Infers metadata (subject, chapter, difficulty) from filenames and content.
-   - Produces an initial JSONL dataset (`math_dataset.jsonl`) with fields like `id`, `niveau`, `chapitre`, `matiere`, `question`, `correction`, `type_exercice`, `difficulte`, and `source`.
+   - Produces an initial JSONL dataset (`output/math_dataset.jsonl`) with fields like `id`, `niveau`, `chapitre`, `matiere`, `question`, `correction`, `type_exercice`, `difficulte`, and `source`.
 
-4. **Enhancing Corrections with AI** (`get_correction_using_ai.py`):
-   
+4. **Enhancing Corrections with AI** (`src/get_correction_using_ai.py`):
+
    - Addresses missing or incomplete corrections in the initial dataset.
    - Uses the DeepSeek Chat API (`deepseek/deepseek-chat:free` via OpenRouter) to generate detailed corrections.
    - Cleans API responses to remove Markdown formatting and splits them into:
      - `raw_correction`: The full, unaltered API response.
      - `explanation`: Cleaned step-by-step explanation.
      - `answer`: Extracted final answers.
-   - Saves the enhanced dataset to `math_dataset_corr_ai.jsonl`.
+   - Saves the enhanced dataset to `output/math_dataset_corr_ai.jsonl`.
+
+## Scraped Links Dataset
+
+The `scraped_links/` directory contains JSON files (e.g., `1AC_questions_answers.json`) that store the scraped PDF links used by `pdf_downloader.py`. Each file contains a list of entries with the following structure:
+
+### Example Scraped Links Entry
+
+```json
+[
+    {
+        "lesson_name": "Les opérations sur les nombres décimaux",
+        "exercice": "exercice 1",
+        "question": "https://www.alloschool.com/assets/documents/course-466/priorites-operatoires-serie-d-exercices-1.pdf",
+        "answer": "https://www.alloschool.com/assets/documents/course-466/priorites-operatoires-corrige-serie-d-exercices-1.pdf"
+    }
+]
+```
 
 ## Final Dataset Structure
 
-The final dataset (`math_dataset_corr_ai.jsonl`) includes the following fields for each entry:
+The final dataset (`output/math_dataset_corr_ai.jsonl`) includes the following fields for each entry:
 
 - `id`: Unique identifier for the exercise (e.g., `1AC_CALCU_001_Les_opérations_sur_les_nombres_décimaux_exercice_1`).
 - `niveau`: Education level (e.g., `1ère année collège`).
@@ -78,14 +95,27 @@ The final dataset (`math_dataset_corr_ai.jsonl`) includes the following fields f
 ## Directory Structure
 
 ```
-├── config.py                     # Configuration file for directory paths
-├── pdf_scraper.py                # Script to scrape PDF links
-├── pdf_downloader.py             # Script to download PDFs
-├── pdf_text_extractor.py         # Script to extract data from PDFs
-├── get_correction_using_ai.py    # Script to generate corrections using AI
-├── main.py                       # Main script to orchestrate the pipeline
-├── data/                         # Directory for JSON data (BASE_DATA_DIR)
+├── src/                          # Source code directory
+│   ├── config.py                 # Configuration file for directory paths
+│   ├── pdf_scraper.py            # Script to scrape PDF links
+│   ├── pdf_downloader.py         # Script to download PDFs
+│   ├── pdf_text_extractor.py     # Script to extract data from PDFs
+│   ├── get_correction_using_ai.py # Script to generate corrections using AI
+│   └── main.py                   # Main script to orchestrate the pipeline
+├── scraped_links/                # Directory for scraped JSON data (BASE_SCRAPED_LINKS_DIR)
+│   ├── 1AC_questions_answers.json
+│   ├── 2AC_questions_answers.json
+│   └── 3AC_questions_answers.json
 ├── pdfs/                         # Directory for downloaded PDFs (BASE_PDF_DOWNLOAD_DIR)
+│   ├── 1AC/
+│   │   ├── exercice/
+│   │   └── correction/
+│   ├── 2AC/
+│   │   ├── exercice/
+│   │   └── correction/
+│   ├── 3AC/
+│   │   ├── exercice/
+│   │   └── correction/
 └── output/                       # Directory for output datasets (OUTPUT_DIR)
     ├── math_dataset.jsonl        # Initial extracted dataset
     └── math_dataset_corr_ai.jsonl # Final dataset with AI-enhanced corrections
@@ -93,7 +123,7 @@ The final dataset (`math_dataset_corr_ai.jsonl`) includes the following fields f
 
 ## Prerequisites
 
-- **Python 3.8+**
+- **Python 3.9+**
 - **Dependencies**:
   - Install required packages: `pip install -r requirements.txt`
   - Required libraries: `pdfplumber`, `requests`, `selenium`, `beautifulsoup4`, `python-dotenv`
@@ -105,47 +135,38 @@ The final dataset (`math_dataset_corr_ai.jsonl`) includes the following fields f
 ## Setup
 
 1. Clone the repository:
-   
+
    ```bash
-   git clone <repository-url>
-   cd dataset-math-college
+   git clone https://github.com/NizarBelaatik/Math_College_Dataset.git
+   cd Math_College_Dataset
    ```
 2. Create a virtual environment and install dependencies:
-   
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
 3. Set up the `.env` file:
-   
+
    ```bash
-   echo "API_KEY=your_openrouter_api_key" > .env
+   echo "API_KEY= main.py
    ```
-4. Ensure ChromeDriver is installed and accessible in your PATH.
 
-## Usage
-
-Run the main script to execute the entire pipeline:
-
-```bash
-python main.py
 ```
 
 The pipeline will:
+1. Scrape PDF links for all grade levels (1AC, 2AC, 3AC) and save them to `scraped_links/`.
+2. Download the corresponding exercise and correction PDFs to `pdfs/<grade>/`.
+3. Extract exercises and metadata into `output/math_dataset.jsonl`.
+4. Generate AI-enhanced corrections and save to `output/math_dataset_corr_ai.jsonl`.
 
-1. Scrape PDF links for all grade levels (1AC, 2AC, 3AC).
-2. Download the corresponding exercise and correction PDFs.
-3. Extract exercises and metadata into `math_dataset.jsonl`.
-4. Generate AI-enhanced corrections and save to `math_dataset_corr_ai.jsonl`.
-
-To process a specific grade level or step, modify `main.py` or run individual scripts:
-
+To process a specific grade level or step, modify `src/main.py` or run individual scripts:
 ```bash
-python pdf_scraper.py
-python pdf_downloader.py
-python pdf_text_extractor.py
-python get_correction_using_ai.py
+python src/pdf_scraper.py
+python src/pdf_downloader.py
+python src/pdf_text_extractor.py
+python src/get_correction_using_ai.py
 ```
 
 ## Notes
