@@ -3,4 +3,6 @@ data/
 pdfs/
 output/
 output
+extracted_texts/
 .env
+**/__pycache__/

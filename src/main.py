@@ -24,11 +24,11 @@ def scrap_download():
         
         # Scrape links
         print("Scraping PDF links...")
-        #scrape_alloschool_links(url, grade_folder_name)
+        scrape_alloschool_links(url, grade_folder_name)
         
         # Download PDFs
         print("Downloading PDFs...")
-        #download_alloschool_pdfs(grade_folder_name)
+        download_alloschool_pdfs(grade_folder_name)
         
         
 def main():
@@ -39,17 +39,18 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Step 1 & 2: Process each grade level
-    #scrap_download()
-    print
+    scrap_download()
+    
+
     # Step 3: Create dataset 
     print("\n--- Creating unified dataset ---")
-    #create_dataset_from_pdfs(EXTRACTOR_PDF_ROOT_DIR, EXTRACTOR_OUTPUT_FILE)
+    create_dataset_from_pdfs(EXTRACTOR_PDF_ROOT_DIR, EXTRACTOR_OUTPUT_FILE)
 
     # Step 4: Recreate dataset using AI 
     print("\n--- Creating dataset using AI ---")
-    generate_dataset(max_lines_per_run=10,wait_time_between_calls=2)
+    generate_dataset(max_lines_per_run=50,wait_time_between_calls=2)
     
-    print("\n--- Pipeline completed successfully ---")
+    
 
 if __name__ == "__main__":
     main()

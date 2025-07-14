@@ -6,6 +6,7 @@ import re
 from dotenv import load_dotenv
 import sys
 from config import OUTPUT_DIR
+
 load_dotenv()
 API_KEY = os.getenv('API_KEY')
 
